@@ -1,0 +1,30 @@
+{
+  "name": "queuectl-node",
+  "version": "1.0.0",
+  "description": "CLI-based background job queue with Express API, workers, retries, DLQ, and SQLite persistence.",
+  "type": "module",
+  "main": "src/server.js",
+  "bin": {
+    "queuectl": "./cli/queuectl.js"
+  },
+  "scripts": {
+    "start": "node ./src/server.js",
+    "dev": "NODE_ENV=development nodemon ./src/server.js",
+    "cli": "node ./cli/queuectl.js",
+    "init": "node -e \"import('./src/db.js').then(m=>m.default.init())\""
+  },
+  "dependencies": {
+    "better-sqlite3": "^9.4.0",
+    "commander": "^12.1.0",
+    "express": "^4.19.2",
+    "morgan": "^1.10.0",
+    "nanoid": "^5.0.7"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "license": "MIT"
+}
