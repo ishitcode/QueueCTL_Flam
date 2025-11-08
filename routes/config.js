@@ -1,6 +1,6 @@
 // src/routes/config.js
 import { Router } from 'express';
-import Config from '../services/ConfigService.js';
+import Config from '../src/services/ConfigService.js';
 
 const router = Router();
 

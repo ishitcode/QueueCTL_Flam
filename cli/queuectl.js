@@ -16,11 +16,32 @@ program
 
 program
   .command('enqueue')
-  .argument('<jobJson>', 'JSON string for the job ({ "id"?, "command": "...", "max_retries"?: n })')
-  .action((jobJson) => {
-    const payload = JSON.parse(jobJson);
-    const id = JobService.enqueue(payload);
-    console.log(id);
+  .description('Enqueue a job. You can provide a JSON string, use --command to pass the shell command, or --file to read a JSON file')
+  .argument('[jobJson]', 'JSON string for the job ({ "id"?, "command": "...", "max_retries"?: n })')
+  .option('-c, --command <cmd>', 'Shell command to run for the job (easier on PowerShell)')
+  .option('-f, --file <path>', 'Path to a JSON file containing the job payload')
+  .action(async (jobJson, opts) => {
+    try {
+      let payload = null;
+      if (opts.file) {
+        // Lazy import so CLI stays lightweight
+        const fs = await import('node:fs');
+        const raw = fs.readFileSync(opts.file, 'utf8');
+        payload = JSON.parse(raw);
+      } else if (opts.command) {
+        payload = { command: opts.command };
+      } else if (jobJson) {
+        payload = JSON.parse(jobJson);
+      } else {
+        throw new Error('Provide job JSON, or use --command / --file');
+      }
+
+      const id = JobService.enqueue(payload);
+      console.log(id);
+    } catch (err) {
+      console.error('Failed to enqueue job:', err.message || err);
+      process.exit(1);
+    }
   });
 
 program

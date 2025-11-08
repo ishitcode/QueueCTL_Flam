@@ -1,6 +1,6 @@
 // src/routes/jobs.js
 import { Router } from 'express';
-import JobService from '../services/JobService.js';
+import JobService from '../src/services/JobService.js';
 
 const router = Router();
 

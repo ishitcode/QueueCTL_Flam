@@ -103,7 +103,15 @@ class JobService {
       return db.get().prepare(`SELECT * FROM jobs WHERE id=?`).get(job.id);
     });
 
-    return tx();
+    try {
+      return tx();
+    } catch (err) {
+      // Transient lock - let caller retry by returning null
+      if (err && (err.code === 'SQLITE_BUSY' || err.code === 'SQLITE_BUSY_SNAPSHOT')) {
+        return null;
+      }
+      throw err;
+    }
   }
 
   handleSuccess(jobId) {

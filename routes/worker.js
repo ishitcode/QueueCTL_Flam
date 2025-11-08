@@ -1,7 +1,7 @@
 // src/routes/workers.js
 import { Router } from 'express';
-import WorkerService from '../services/WorkerService.js';
-import JobService from '../services/JobService.js';
+import WorkerService from '../src/services/WorkerService.js';
+import JobService from '../src/services/JobService.js';
 
 const router = Router();
 

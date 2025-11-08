@@ -13,6 +13,12 @@ class DB {
     this.db = new Database(DB_PATH);
     this.db.pragma('journal_mode = WAL');
     this.db.pragma('synchronous = NORMAL');
+    // Wait briefly when database is busy so concurrent workers don't fail immediately
+    try {
+      this.db.pragma('busy_timeout = 2000');
+    } catch (e) {
+      // ignore if pragma not supported
+    }
   }
 
   init() {

@@ -1,64 +1,21 @@
 // src/workers/worker.js
+// This worker runs only the command assigned by the main thread.
+// It expects messages: { type: 'run', job: {...}, timeoutMs: number }
+// and replies with { type: 'result', jobId, code, output }
 import { parentPort, workerData } from 'node:worker_threads';
 import { spawn } from 'node:child_process';
-import db from '../db.js';
-import JobService from '../services/JobService.js';
-import Config from '../services/ConfigService.js';
 
-db.init();
-
-const workerId = workerData.id;
-
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
-async function runLoop() {
-  const pollMs = Number(Config.get('poll_interval'));
-  const jobTimeoutMs = Number(Config.get('job_timeout_ms'));
-  const backoffBase = Number(Config.get('backoff_base'));
-
-  let stopping = false;
-
-  process.on('SIGTERM', () => (stopping = true));
-  process.on('SIGINT', () => (stopping = true));
-
-  while (true) {
-    parentPort?.postMessage({ type: 'heartbeat', status: stopping ? 'stopping' : 'running' });
-
-    if (stopping || Config.shutdownFlag()) break;
-
-    const job = JobService.claimNext(workerId);
-    if (!job) {
-      await sleep(pollMs);
-      continue;
-    }
-
-    // Execute job.command
-    try {
-      const { code, output } = await execShell(job.command, jobTimeoutMs);
-      if (code === 0) {
-        JobService.handleSuccess(job.id);
-      } else {
-        JobService.handleFailure(job, code, output, backoffBase);
-      }
-    } catch (err) {
-      JobService.handleFailure(job, 1, String(err?.message || err), backoffBase);
-    }
-  }
-
-  parentPort?.postMessage({ type: 'heartbeat', status: 'stopped' });
-}
+const workerId = workerData?.id || 'worker';
 
 function execShell(command, timeoutMs) {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const child = spawn(command, { shell: true });
-
     let output = '';
     child.stdout.on('data', (d) => (output += d.toString()));
     child.stderr.on('data', (d) => (output += d.toString()));
 
     let killedByTimeout = false;
     let timer = null;
-
     if (timeoutMs > 0) {
       timer = setTimeout(() => {
         killedByTimeout = true;
@@ -77,13 +34,22 @@ function execShell(command, timeoutMs) {
 
     child.on('error', (err) => {
       if (timer) clearTimeout(timer);
-      resolve({ code: 127, output: `Spawn error: ${err.message}` }); // not found or similar
+      resolve({ code: 127, output: `Spawn error: ${err.message}` });
     });
   });
 }
 
-runLoop().catch((e) => {
-  // If worker crashes, just exit.
-  console.error('Worker loop error:', e);
-  process.exit(1);
+parentPort.on('message', async (msg) => {
+  try {
+    if (msg?.type === 'run' && msg.job) {
+      const { job, timeoutMs } = msg;
+      const res = await execShell(job.command, timeoutMs || 0);
+      parentPort.postMessage({ type: 'result', jobId: job.id, code: res.code, output: res.output, workerId });
+    } else if (msg?.type === 'shutdown') {
+      parentPort.postMessage({ type: 'stopped' });
+      process.exit(0);
+    }
+  } catch (err) {
+    parentPort.postMessage({ type: 'result', jobId: msg?.job?.id, code: 1, output: String(err?.message || err), workerId });
+  }
 });

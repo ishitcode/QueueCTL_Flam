@@ -1,9 +1,10 @@
 // src/app.js
 import express from 'express';
 import morgan from 'morgan';
-import jobs from './routes/jobs.js';
-import workers from './routes/workers.js';
-import config from './routes/config.js';
+// routes live in the repository root `routes/` directory
+import jobs from '../routes/jobs.js';
+import workers from '../routes/worker.js';
+import config from '../routes/config.js';
 
 const app = express();
 app.use(express.json());
