@@ -5,6 +5,9 @@ QueueCTL allows you to enqueue shell commands as background jobs, process them w
 
 ---
 
+🎥 **Demo Video:** [Watch CLI demo here](https://drive.google.com/file/d/1QVKjITUrC2Dik5mljbyKnSlz-uMEvStx/view?usp=drive_link)
+
+
 ## 🧩 Features Overview
 
 | Feature | Description |
